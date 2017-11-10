@@ -371,8 +371,11 @@
                     setTimeout(function () {
                         $('#search').trigger('click')
                     }, 200);
-                } else if (data == 'exist')return alert('设备编号已存在，无法重复添加！')
-                else alert(data)
+                } else if (data == 'exist') {
+                    return alert('设备编号已存在，无法重复添加！')
+                } else if (data == 'inactive') {
+                    return alert('不能出借给仓库！')
+                } else alert(data)
             })
         }
 

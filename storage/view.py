@@ -205,6 +205,9 @@ def init_views(app):
             (:id,:username,:state,:sn,:price,:description,:catalog_id,:remark,:part,:purchase_date,:location,'admin',now())
             '''
         elif para['stype'] == 'history':
+            print para
+            if para['location'] == u'仓库' and para['ext'] == '1':
+                return 'inactive'
             sql = 'call history_p(:id, :username, :location, :ext, :register_date);'
         db.session.execute(sql, para)
         db.session.commit()
