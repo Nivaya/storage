@@ -1,3 +1,7 @@
+INSERT stdb.roles (name)
+VALUES ('root'),('admin'),('guset')
+
+
 /*DROP PROCEDURE history_p;*/
 
 CREATE PROCEDURE history_p (

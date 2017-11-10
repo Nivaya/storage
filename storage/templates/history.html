@@ -109,7 +109,7 @@
             $.each($('#storage_form [name]'), function () {
                 para[$(this).attr('name')] = $(this).val();
             });
-            $.get('/history', function (data) {
+            $.get('/history', function () {
                 var url = '/history?query=Y&catalog_id={catalog_id}&part={part}&username={username}&state={state}&location={location}&id={id}'.format(para);
                 window.location.href = url;
             });

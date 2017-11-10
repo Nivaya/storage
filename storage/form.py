@@ -15,7 +15,8 @@ class LoginForm(FlaskForm):
 class RegisterForm(FlaskForm):
     username = StringField(label=u'用户名', validators=[DataRequired()])
     password = PasswordField(label=u'密码', validators=[DataRequired()])
-    confirm = PasswordField(label=u'确认密码', validators=[DataRequired(), EqualTo('password', u'两次密码输入必须一致')])
+    confirm = PasswordField(label=u'确认密码',
+                            validators=[DataRequired(), EqualTo('password', u'两次密码输入必须一致')])
     re_submit = SubmitField(u'马上注册')
 
     def validate_username(self, field):

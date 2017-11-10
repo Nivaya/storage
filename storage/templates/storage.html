@@ -22,10 +22,12 @@
         <button type="button" class="btn btn-ms btn-primary" id="search">
             <span class="glyphicon glyphicon-search"></span>&nbsp;查询
         </button>
-        <button type="button" class="btn btn-ms btn-success" id="add" data-toggle="modal"
-                data-target="#part_setting">
-            <span class="glyphicon glyphicon-plus"></span>&nbsp;录入
-        </button>
+        {% if current_user.role_id  != 3 %}
+            <button type="button" class="btn btn-ms btn-success" id="add" data-toggle="modal"
+                    data-target="#part_setting">
+                <span class="glyphicon glyphicon-plus"></span>&nbsp;录入
+            </button>
+        {% endif %}
         <div class="panel panel-default" id="storage_form" style="margin-top: 10px">
             <div class="panel-body">
                 <div class="row row-md" style="margin-bottom: 8px">
@@ -88,7 +90,9 @@
                     <th width="9%">所在部门</th>
                     <th width="4%">状态</th>
                     <th width="5%">备注</th>
-                    <th width="7%">操作</th>
+                    {% if current_user.role_id  != 3 %}
+                        <th width="7%">操作</th>
+                    {% endif %}
                 </tr>
                 </thead>
                 <tbody>
@@ -109,18 +113,22 @@
                         <td style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
                             <span title="{{ storage.remark }}">{{ storage.remark }}</span>
                         </td>
-                        <td>
-                            <button type="button" class="btn btn-default btn-xs" data-toggle="modal"
-                                    data-target="#part_setting" title="设置"
-                                    btn="setting">
-                                <span class="glyphicon glyphicon-cog"></span>
-                            </button>
-                            <button type="button" class="btn btn-default btn-xs" data-toggle="modal"
-                                    data-target="#part_setting" title="出库/入库"
-                                    btn="history">
-                                <span class="glyphicon glyphicon-time"></span>
-                            </button>
-                        </td>
+                        {% if current_user.role_id  != 3 %}
+                            <td>
+
+                                <button type="button" class="btn btn-default btn-xs" data-toggle="modal"
+                                        data-target="#part_setting" title="设置"
+                                        btn="setting">
+                                    <span class="glyphicon glyphicon-cog"></span>
+                                </button>
+                                <button type="button" class="btn btn-default btn-xs" data-toggle="modal"
+                                        data-target="#part_setting" title="出库/入库"
+                                        btn="history">
+                                    <span class="glyphicon glyphicon-time"></span>
+                                </button>
+
+                            </td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
                 </tbody>
@@ -138,7 +146,7 @@
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
                             aria-hidden="true" id="modal_close">&times;</span></button>
-                    <h3 class="modal-title" id="setting_title" style="color: blue"></h3>
+                    <h3 class="modal-title" id="setting_title"></h3>
                 </div>
                 <div class="modal-body" id="setting_body"></div>
                 <div class="modal-footer">
@@ -146,7 +154,7 @@
                     <button type="button" class="btn btn-danger" title="删除">
                         <span class="glyphicon glyphicon-trash"></span>&nbsp;删除
                     </button>
-                    <button type="submit" class="btn btn-success" title="提交">
+                    <button type="button" class="btn btn-success" title="提交">
                         <span class="glyphicon glyphicon-saved"></span>&nbsp;提交
                     </button>
                 </div>
@@ -270,7 +278,7 @@
             $.each($('#storage_form [name]'), function () {
                 para[$(this).attr('name')] = $(this).val();
             });
-            $.get('/storage', function (data) {
+            $.get('/storage', function () {
                 var url = '/storage?query=Y&catalog_id={catalog_id}&part={part}&username={username}&sn={sn}&state={state}&location={location}&id={id}'.format(para);
                 window.location.href = url;
             });
@@ -294,7 +302,7 @@
                     var eles = $(e.target).closest('tr').find('[name=id]');
                     var para = [{name: 'id', value: eles.text()}];
                     $.post('/storage.detail', para, function (data) {
-                        $('#setting_title').text(data[0].id);
+                        $('#setting_title').text('编辑：' + data[0].id);
                         var html = data.map(function (row) {
                             for (var i in row) row[i] = row[i] == null ? '' : row[i]
                             return model_tp.format(row)
@@ -326,7 +334,7 @@
                     var eles = $(e.target).closest('tr').find('[name=id]');
                     var para = [{name: 'id', value: eles.text()}];
                     $.post('/storage.detail', para, function (data) {
-                        $('#setting_title').text(data[0].id);
+                        $('#setting_title').text('领用：' + data[0].id);
                         var html = data.map(function (row) {
                             for (var i in row) row[i] = row[i] == null ? '' : row[i]
                             return ht_tp.format(row)
@@ -363,7 +371,8 @@
                     setTimeout(function () {
                         $('#search').trigger('click')
                     }, 200);
-                } else return alert('设备编号已存在，无法重复添加！')
+                } else if (data == 'exist')return alert('设备编号已存在，无法重复添加！')
+                else alert(data)
             })
         }
 

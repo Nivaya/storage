@@ -42,11 +42,11 @@
                     <h3 class="modal-title" id="myModalLabel">登录</h3>
                 </div>
                 <div class="modal-body">
-                    {% if para=='2' %}
+                    {% if para['iflogin']=='2' %}
                         <div class="alert alert-success" role="alert">
                             {{ get_flashed_messages(category_filter=["success"])[0] }}
                         </div>
-                    {% elif para=='1' %}
+                    {% elif para['iflogin']=='1' %}
                         <div class="alert alert-danger" role="alert">
                             {{ get_flashed_messages(category_filter=["error"])[0] }}
                         </div>
@@ -61,14 +61,28 @@
 {% block content %}
     <div class="container-fluid">
         <div class="row">
-            <div class="col-sm-3 col-md-2 sidebar">
-                <ul class="nav nav-sidebar" id="navbar">
-                    <li type="index"><a href="{{ url_for('index') }}">首页</a></li>
-                    <li type="storage"><a href="{{ url_for('storage') }}">库存查询</a></li>
-                    <li type="history"><a href="{{ url_for('history') }}">领用记录</a></li>
+            <div class="col-sm-3 col-md-2 sidebar" id="navbar_slide">
+                <ul class="nav nav-sidebar">
+                    <li type="index">
+                        <a href="{{ url_for('index') }}"><span class="glyphicon glyphicon-home"></span>&nbsp;首页</a>
+                    </li>
+                    <li type="storage">
+                        <a href="{{ url_for('storage') }}"><span class="glyphicon glyphicon-hdd"></span>&nbsp;库存查询</a>
+                    </li>
+                    <li type="history">
+                        <a href="{{ url_for('history') }}"><span class="glyphicon glyphicon-list-alt"></span>&nbsp;领用记录</a>
+                    </li>
                 </ul>
                 <ul class="nav nav-sidebar">
-                    <li><a href="">人员维护</a></li>
+                    {% if current_user.is_authenticated %}
+                        {% if current_user.role_id == 1 %}
+                            <li type="hr">
+                                <a href="{{ url_for('hr') }}">
+                                    <span class="glyphicon glyphicon-cog"></span>&nbsp;人员维护
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
                 </ul>
             </div>
             {% block content_extend %}
@@ -76,9 +90,7 @@
                     <div class="container">
                         <div class="page-header"><h1>欢迎使用 库存管理系统</h1></div>
                         <p><var>获取系统更新，请持续关注作者~</var></p>
-                        <a href="https://github.com/Nivaya/storage" target="_blank" title="点击访问">
-                            <img src="../static/img/link.png" alt="二维码">
-                        </a>
+                        <img src="../static/img/link.png" alt="二维码">
                     </div>
                 </div>
             {% endblock %}
@@ -97,7 +109,15 @@
             <div id="navbar" class="collapse navbar-collapse">
                 <ul class="nav navbar-nav navbar-right">
                     {% if current_user.is_authenticated %}
-                        <li><a href="#">{{ current_user.username }}</a></li>
+                        <li>
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button"
+                               aria-haspopup="true" aria-expanded="false">
+                                {{ current_user.username }}<span class="caret"></span>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li id="change_pwd"><a href="#">修改密码</a></li>
+                            </ul>
+                        </li>
                         <li><a href="{{ url_for('logout') }}">退出</a></li>
                     {% else %}
                         <li><a href="#" data-toggle="modal" data-target="#loginModal">
@@ -128,8 +148,19 @@
                 $('#loginModal').modal();
                 $('#loginModal').modal('show');
             }
-            $('#navbar li').each(function () {
-                if ($(this).attr('type') == para.page) $(this).addClass('active');
+            $('#navbar_slide li').each(function () {
+                if ($(this).attr('type') == para['page']) $(this).addClass('active');
+            });
+            $('#change_pwd').click(function () {
+                var pwd1 = prompt('新密码：');
+                var pwd2 = prompt('确认密码：');
+                alert(pwd1 != pwd2)
+                if (pwd1 != pwd2) return alert('两次密码不一致，修改失败！');
+                $.post('/hr.save', [{name: 'id', value: '{{ current_user.id }}'},
+                    {name: 'role_id', value: '{{ current_user.role_id }}'},
+                    {name: 'type', value: 'reset'}], function (data) {
+                    return alert(data)
+                })
             })
 
             {% block scripts_extend %}

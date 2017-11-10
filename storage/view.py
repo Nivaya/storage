@@ -3,7 +3,7 @@ from flask import render_template, redirect, url_for, flash, request, jsonify, g
 from form import LoginForm, RegisterForm
 from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
-from model import User, Storage, Catalog, History
+from model import User, Storage, Catalog, History, Role
 from . import db
 import json
 import datetime
@@ -45,7 +45,8 @@ def init_views(app):
         g.para.update({'page': 'index'})
         return render_template('index.html',
                                login_form=LoginForm(),
-                               para=g.para)
+                               para=g.para,
+                               page={})
 
     # 是否登陆成功
     def login():
@@ -59,8 +60,8 @@ def init_views(app):
             flash(u'用户名或者密码错误！', 'error')
             return 'mistake'
         # 注册成功时显示flash
-        if g.para == '2':
-            flash(u'注册成功！现在您可以登录您的账号了', 'success')
+        if g.para['iflogin'] == '2':
+            flash(u'注册成功！现在您可以登录了', 'success')
         return 0
 
     # 注册
@@ -72,16 +73,16 @@ def init_views(app):
         elif g.islogin == 'mistake':
             return redirect('/register?login_required=1')
         if register_form.re_submit.data and register_form.validate_on_submit():
-            user = User(email=register_form.email.data,
-                        username=register_form.username.data,
-                        password=register_form.password.data)
+            user = User(username=register_form.username.data,
+                        password_hash=register_form.password.data)
             db.session.add(user)
             db.session.commit()
             return redirect('/index?login_required=2')
         return render_template('register.html',
                                login_form=LoginForm(),
                                register_form=register_form,
-                               para=g.para)
+                               para=g.para,
+                               page={})
 
     # 登出
     @app.route('/logout')
@@ -92,6 +93,7 @@ def init_views(app):
 
     # 库存查询
     @app.route('/storage', methods=['GET', 'POST'])
+    @login_required
     def storage():
         para = {'page_index': request.args.get('page', 1, type=int),
                 'catalog_id': request.args.get('catalog_id', ''),
@@ -133,7 +135,10 @@ def init_views(app):
 
     # 详情
     @app.route('/storage.detail', methods=['POST'])
+    @login_required
     def detial():
+        if g.user.role_id == 3:
+            return 'Powerless'
         para = {'id': request.form.get('id')}
         part = db.session.execute(u'''
           select st.*,ca.catalog,
@@ -151,7 +156,10 @@ def init_views(app):
 
     # 保存
     @app.route('/storage.save', methods=['POST'])
+    @login_required
     def save():
+        if g.user.role_id == 3:
+            return 'Powerless'
         sql = ''
         para = {'catalog_id': request.form.get('catalog_id', ''),
                 'part': request.form.get('part', ''),
@@ -203,7 +211,10 @@ def init_views(app):
         return 'ok'
 
     @app.route('/storage.delete', methods=['POST'])
+    @login_required
     def delete():
+        if g.user.role_id == 3:
+            return 'Powerless'
         para = request.form.get('id')
         db.session.execute("delete from stdb.storage where id='%s'" % para)
         db.session.commit()
@@ -211,6 +222,7 @@ def init_views(app):
 
     # 历史查询
     @app.route('/history', methods=['GET', 'POST'])
+    @login_required
     def history():
         para = {'page_index': request.args.get('page', 1, type=int),
                 'catalog_id': request.args.get('catalog_id', ''),
@@ -248,3 +260,72 @@ def init_views(app):
                                page=eip_format(para),
                                historys=historys if para['query'] else [],
                                pagination=pagination if para['query'] else [])
+
+    # 人员维护
+    @app.route('/hr', methods=['GET', 'POST'])
+    @login_required
+    def hr():
+        para = {'page_index': request.args.get('page', 1, type=int),
+                'role_id': request.args.get('role_id', ''),
+                'query': request.args.get('query', ''),
+                'username': request.args.get('username', '')}
+
+        users = db.session.query(User, Role.name).outerjoin(Role, User.role_id == Role.id).filter('''
+                (users.role_id=:role_id or :role_id ='')
+                and (users.username like concat('%',:username,'%') or :username ='')
+            ''').params(role_id=para['role_id'],
+                        query=para['query'],
+                        username=para['username']).order_by(User.username)
+
+        power = db.session.execute('SELECT rl.id, rl.name FROM stdb.roles rl')
+
+        g.para.update({'page': 'hr'})
+        return render_template('hr.html',
+                               login_form=LoginForm(),
+                               para=g.para,
+                               power=power,
+                               page=eip_format(para),
+                               users=users if para['query'] else [])
+
+    # 详情
+    @app.route('/hr.detail', methods=['POST'])
+    @login_required
+    def hr_detail():
+        if g.user.role_id != 1:
+            return 'Powerless'
+        para = {'id': request.form.get('id')}
+        part = db.session.execute(u'''
+          select u.*,r.name
+          from stdb.users u
+          left join stdb.roles r on r.id=u.role_id
+          where u.id=:id
+       ''', {'id': para['id']})
+        part = [dict(r) for r in part]
+        return jsonify(part)
+
+    # 保存
+    @app.route('/hr.save', methods=['POST'])
+    @login_required
+    def hr_save():
+        if g.user.role_id != 1:
+            return 'Powerless'
+        para = {'role_id': request.form.get('role_id', ''),
+                'id': request.form.get('id', ''),
+                'stype': request.form.get('type', '')}
+        if not para['role_id']:
+            return u'不可分配空角色'
+        if para['stype'] == 'update':
+            sql = '''
+                UPDATE stdb.users u
+                    SET u.role_id=:role_id
+                    WHERE u.id=:id
+            '''
+        else:
+            sql = '''
+                UPDATE stdb.users u
+                    SET u.password_hash='123456'
+                    WHERE u.id=:id
+            '''
+        db.session.execute(sql, para)
+        db.session.commit()
+        return 'ok' if para['stype'] == 'update' else u'重置密码成功！'
