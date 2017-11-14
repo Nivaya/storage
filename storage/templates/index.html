@@ -75,6 +75,13 @@
                 </ul>
                 <ul class="nav nav-sidebar">
                     {% if current_user.is_authenticated %}
+                        {% if current_user.role_id != 3 %}
+                            <li type="catalog">
+                                <a href="{{ url_for('catalog') }}">
+                                    <span class="glyphicon glyphicon-tags"></span>&nbsp;分类维护
+                                </a>
+                            </li>
+                        {% endif %}
                         {% if current_user.role_id == 1 %}
                             <li type="hr">
                                 <a href="{{ url_for('hr') }}">
@@ -88,7 +95,7 @@
             {% block content_extend %}
                 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
                     <div class="container">
-                        <div class="page-header"><h1>欢迎使用 库存管理系统V1.0</h1></div>
+                        <div class="page-header"><h1>欢迎使用 库存管理系统v1.0</h1></div>
                         <p><var>获取系统更新，请持续关注作者~</var></p>
                         <img src="../static/img/link.png" alt="二维码">
                     </div>
@@ -154,13 +161,16 @@
             });
             $('#change_pwd').click(function () {
                 var pwd1 = prompt('新密码：');
+                if (!pwd1) return;
                 var pwd2 = prompt('确认密码：');
-                alert(pwd1 != pwd2)
                 if (pwd1 != pwd2) return alert('两次密码不一致，修改失败！');
                 $.post('/hr.save', [{name: 'id', value: '{{ current_user.id }}'},
                     {name: 'role_id', value: '{{ current_user.role_id }}'},
                     {name: 'type', value: 'reset'}], function (data) {
-                    return alert(data)
+                    alert(data);
+                    return $.post('/logout', function () {
+                        window.location.reload()
+                    });
                 })
             })
 

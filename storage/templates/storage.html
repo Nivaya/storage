@@ -298,10 +298,12 @@
         //操作
         $('button[btn]').each(function () {
             if ($(this).attr('btn') == 'setting') {
+                var iflend;
                 $(this).bind('click', function (e) {
                     var eles = $(e.target).closest('tr').find('[name=id]');
                     var para = [{name: 'id', value: eles.text()}];
                     $.post('/storage.detail', para, function (data) {
+                        iflend = data[0].location;
                         $('#setting_title').text('编辑：' + data[0].id);
                         var html = data.map(function (row) {
                             for (var i in row) row[i] = row[i] == null ? '' : row[i]
@@ -310,6 +312,9 @@
                         $('#setting_body').html(html)
                         $('#ifeidt').hide();
                         $('#part_setting').find('.btn-danger,span.red').show();
+                        //不在仓库不允许删除
+                        if (iflend != '仓库') $('#part_setting .btn-danger').attr('disabled', 'disadbled')
+                        else $('#part_setting .btn-danger').removeAttr('disabled')
                         $('#setting_body').find('select[name=catalog_id]').html($('#storage_form select[name=catalog_id]').html()).val(data[0].catalog_id)
                         $('#setting_body').find('select[name=state]').append($("<option value='好'>好</option><option value='坏'>坏</option>")).val(data[0].state)
                     });
@@ -324,10 +329,11 @@
                                     setTimeout(function () {
                                         $('#search').trigger('click')
                                     }, 200);
-                                }
+                                } else alert('用户未归还，无法删除')
                             });
                         }
                     });
+
                 })
             } else if ($(this).attr('btn') == 'history') {
                 $(this).bind('click', function (e) {

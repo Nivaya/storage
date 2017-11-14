@@ -85,7 +85,7 @@ def init_views(app):
                                page={})
 
     # 登出
-    @app.route('/logout')
+    @app.route('/logout', methods=['GET', 'POST'])
     @login_required
     def logout():
         logout_user()
@@ -219,7 +219,11 @@ def init_views(app):
         if g.user.role_id == 3:
             return 'Powerless'
         para = request.form.get('id')
-        db.session.execute("delete from stdb.storage where id='%s'" % para)
+        flag = Storage.query.filter(u"id=:id and location='仓库'").params(id=para).first()
+        if not flag:
+            return 'fail'
+        db.session.execute(u"delete from stdb.st_history where part_id='%s'" % para)
+        db.session.execute(u"delete from stdb.storage where id='%s' and location='仓库'" % para)
         db.session.commit()
         return 'ok'
 
@@ -272,7 +276,8 @@ def init_views(app):
                 'role_id': request.args.get('role_id', ''),
                 'query': request.args.get('query', ''),
                 'username': request.args.get('username', '')}
-
+        if g.user.role_id != 1:
+            return 'Powerless'
         users = db.session.query(User, Role.name).outerjoin(Role, User.role_id == Role.id).filter('''
                 (users.role_id=:role_id or :role_id ='')
                 and (users.username like concat('%',:username,'%') or :username ='')
@@ -310,11 +315,12 @@ def init_views(app):
     @app.route('/hr.save', methods=['POST'])
     @login_required
     def hr_save():
-        if g.user.role_id != 1:
-            return 'Powerless'
         para = {'role_id': request.form.get('role_id', ''),
                 'id': request.form.get('id', ''),
                 'stype': request.form.get('type', '')}
+        # 维护操作需要root权限
+        if g.user.role_id != 1 and para['stype'] == 'update':
+            return 'Powerless'
         if not para['role_id']:
             return u'不可分配空角色'
         if para['stype'] == 'update':
@@ -332,3 +338,60 @@ def init_views(app):
         db.session.execute(sql, para)
         db.session.commit()
         return 'ok' if para['stype'] == 'update' else u'重置密码成功！'
+
+    # 分类维护
+    @app.route('/catalog', methods=['GET', 'POST'])
+    @login_required
+    def catalog():
+        para = {'query': request.args.get('query', '')}
+        if g.user.role_id == 3:
+            return 'Powerless'
+        catalogs = Catalog.query
+        g.para.update({'page': 'catalog'})
+        return render_template('catalog.html',
+                               login_form=LoginForm(),
+                               para=g.para,
+                               catalogs=catalogs if para['query'] else [],
+                               page={})
+
+    # 分类详情
+    @app.route('/catalog.detail', methods=['POST'])
+    @login_required
+    def catalog_detail():
+        if g.user.role_id == 3:
+            return 'Powerless'
+        para = {'id': request.form.get('id')}
+        part = db.session.execute(u'''
+                  select *
+                  from stdb.catalog c
+                  where c.id=:id
+               ''', {'id': para['id']})
+        part = [dict(r) for r in part]
+        return jsonify(part)
+
+    # 保存
+    @app.route('/catalog.save', methods=['POST'])
+    @login_required
+    def catalog_save():
+        para = {'id': request.form.get('id', ''),
+                'catalog': request.form.get('catalog', ''),
+                'stype': request.form.get('type', '')}
+        # 维护操作需要权限
+        if g.user.role_id == 3:
+            return 'Powerless'
+        if not para['catalog']:
+            return u'不可更新为空'
+        if para['stype'] == 'update':
+            sql = '''
+                    UPDATE stdb.catalog c
+                        SET c.catalog=:catalog
+                        WHERE c.id=:id
+                '''
+        else:
+            sql = '''
+                    INSERT INTO stdb.catalog (catalog)
+                        VALUE (:catalog)
+                '''
+        db.session.execute(sql, para)
+        db.session.commit()
+        return 'ok'
