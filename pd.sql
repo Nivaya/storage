@@ -12,7 +12,7 @@ CREATE PROCEDURE history_p (
 	IN redate_in VARCHAR (30)
 )
 BEGIN
-	UPDATE stdb. STORAGE st
+	UPDATE stdb.storage st
 SET st.username = CASE ext_in
 WHEN '1' THEN
 	usr_in

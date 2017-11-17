@@ -86,7 +86,7 @@ class History(db.Model):
     part_id = db.Column(db.String(30), db.ForeignKey('storage.id'))
     username = db.Column(db.String(10), index=True)
     location = db.Column(db.String(30))
-    state = db.Column(db.Integer)
+    state = db.Column(db.String(2))
     register_date = db.Column(db.DateTime)
     create_date = db.Column(db.DateTime, default=datetime.now)
     create_user = db.Column(db.String(30))
