@@ -96,8 +96,6 @@
                 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
                     <div class="container">
                         <div class="page-header"><h1>欢迎使用 库存管理系统v1.0</h1></div>
-                        <p><var>获取系统更新，请持续关注作者~</var></p>
-                        <img src="../static/img/link.png" alt="二维码">
                     </div>
                 </div>
             {% endblock %}
@@ -166,13 +164,15 @@
                 if (pwd1 != pwd2) return alert('两次密码不一致，修改失败！');
                 $.post('/hr.save', [{name: 'id', value: '{{ current_user.id }}'},
                     {name: 'role_id', value: '{{ current_user.role_id }}'},
-                    {name: 'type', value: 'reset'}], function (data) {
+                    {name: 'type', value: 'chpwd'},
+                    {name: 'chpwd', value: pwd1}], function (data) {
                     alert(data);
                     return $.post('/logout', function () {
                         window.location.reload()
                     });
-                })
+                });
             })
+            if (page.user == '123456') $('#change_pwd').trigger('click');
 
             {% block scripts_extend %}
             {% endblock %}

@@ -20,7 +20,7 @@ livereload==2.5.1
 Mako==1.0.7
 Markdown==2.6.9
 MarkupSafe==1.0
-mysql-connector-python==2.0.4
+#mysql-connector-python==2.0.4
 MySQL-python==1.2.5
 pycodestyle==2.3.1
 PyMySQL==0.7.11

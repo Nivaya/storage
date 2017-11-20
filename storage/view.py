@@ -103,7 +103,8 @@ def init_views(app):
                 'sn': request.args.get('sn', ''),
                 'username': request.args.get('username', ''),
                 'location': request.args.get('location', ''),
-                'state': request.args.get('state', '')}
+                'state': request.args.get('state', ''),
+                'user': g.user.password_hash}
 
         storages = db.session.query(Storage, Catalog).join(Catalog).filter('''
                 (storage.catalog_id=:catalog_id or :catalog_id ='')
@@ -238,7 +239,8 @@ def init_views(app):
                 'id': request.args.get('id', ''),
                 'username': request.args.get('username', ''),
                 'location': request.args.get('location', ''),
-                'state': request.args.get('state', '')}
+                'state': request.args.get('state', ''),
+                'user': g.user.password_hash}
 
         historys = db.session.query(History, Storage.part, Catalog.catalog) \
             .outerjoin(Storage, Storage.id == History.part_id) \
@@ -275,7 +277,8 @@ def init_views(app):
         para = {'page_index': request.args.get('page', 1, type=int),
                 'role_id': request.args.get('role_id', ''),
                 'query': request.args.get('query', ''),
-                'username': request.args.get('username', '')}
+                'username': request.args.get('username', ''),
+                'user': g.user.password_hash}
         if g.user.role_id != 1:
             return 'Powerless'
         users = db.session.query(User, Role.name).outerjoin(Role, User.role_id == Role.id).filter('''
@@ -317,7 +320,8 @@ def init_views(app):
     def hr_save():
         para = {'role_id': request.form.get('role_id', ''),
                 'id': request.form.get('id', ''),
-                'stype': request.form.get('type', '')}
+                'stype': request.form.get('type', ''),
+                'chpwd': request.form.get('chpwd', '')}
         # 维护操作需要root权限
         if g.user.role_id != 1 and para['stype'] == 'update':
             return 'Powerless'
@@ -332,7 +336,8 @@ def init_views(app):
         else:
             sql = '''
                 UPDATE stdb.users u
-                    SET u.password_hash='123456'
+                    SET u.password_hash= CASE :stype WHEN 'reset' THEN '123456'
+                                                     ELSE :chpwd END
                     WHERE u.id=:id
             '''
         db.session.execute(sql, para)
