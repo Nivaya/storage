@@ -34,6 +34,10 @@ def init_views(app):
         g.islogin = login()
         g.catalog = db.session.execute('SELECT ca.id, ca.catalog FROM stdb.catalog ca')
 
+    @app.teardown_request
+    def teardown_request(exception):
+        db.session.close()
+
     # 登录
     @app.route('/', methods=['GET', 'POST'])
     @app.route('/index', methods=['GET', 'POST'])
@@ -65,7 +69,7 @@ def init_views(app):
         return 0
 
     # 注册
-    @app.route('/register', methods=['GET', 'POST'])
+    # @app.route('/register', methods=['GET', 'POST'])
     def register():
         register_form = RegisterForm()
         if g.islogin == 'ok':
@@ -104,7 +108,7 @@ def init_views(app):
                 'username': request.args.get('username', ''),
                 'location': request.args.get('location', ''),
                 'state': request.args.get('state', ''),
-                'user': g.user.password_hash}
+                'ifedit': 'N' if g.user.password_hash == '123456' else 'Y'}
 
         storages = db.session.query(Storage, Catalog).join(Catalog).filter('''
                 (storage.catalog_id=:catalog_id or :catalog_id ='')
@@ -178,7 +182,8 @@ def init_views(app):
                 'stype': request.form.get('type', ''),
                 'ext': request.form.get('exit', ''),
                 # 不填默认今天
-                'register_date': request.form.get('register_date') or datetime.datetime.today().strftime('%Y-%m-%d'),}
+                'register_date': request.form.get('register_date') or datetime.datetime.today().strftime('%Y-%m-%d'),
+                'engname': g.user.username}
         if para['stype'] == 'update':
             sql = '''
                 UPDATE stdb.storage st
@@ -192,7 +197,8 @@ def init_views(app):
                         st.part=:part,
                         st.purchase_date=:purchase_date,
                         st.location=:location,
-                        st.modify_date=now()
+                        st.modify_date=now(),
+                        st.modify_user=:engname
                     WHERE st.id=:id
             '''
         elif para['stype'] == 'insert':
@@ -203,13 +209,13 @@ def init_views(app):
             INSERT INTO stdb.storage
             (id,username,state,sn,price,description,catalog_id,remark,part,purchase_date,location,create_user,create_date)
             VALUE
-            (:id,:username,:state,:sn,:price,:description,:catalog_id,:remark,:part,:purchase_date,:location,'admin',now())
+            (:id,:username,:state,:sn,:price,:description,:catalog_id,:remark,:part,:purchase_date,:location,:engname,now())
             '''
         elif para['stype'] == 'history':
             print para
             if para['location'] == u'仓库' and para['ext'] == '1':
                 return 'inactive'
-            sql = 'call history_p(:id, :username, :location, :ext, :register_date);'
+            sql = 'call history_p(:id, :username, :location, :ext, :register_date,:engname);'
         db.session.execute(sql, para)
         db.session.commit()
         return 'ok'
@@ -240,7 +246,7 @@ def init_views(app):
                 'username': request.args.get('username', ''),
                 'location': request.args.get('location', ''),
                 'state': request.args.get('state', ''),
-                'user': g.user.password_hash}
+                'ifedit': 'N' if g.user.password_hash == '123456' else 'Y'}
 
         historys = db.session.query(History, Storage.part, Catalog.catalog) \
             .outerjoin(Storage, Storage.id == History.part_id) \
@@ -278,7 +284,7 @@ def init_views(app):
                 'role_id': request.args.get('role_id', ''),
                 'query': request.args.get('query', ''),
                 'username': request.args.get('username', ''),
-                'user': g.user.password_hash}
+                'ifedit': 'N' if g.user.password_hash == '123456' else 'Y'}
         if g.user.role_id != 1:
             return 'Powerless'
         users = db.session.query(User, Role.name).outerjoin(Role, User.role_id == Role.id).filter('''
@@ -319,6 +325,7 @@ def init_views(app):
     @login_required
     def hr_save():
         para = {'role_id': request.form.get('role_id', ''),
+                'username': request.form.get('username', ''),
                 'id': request.form.get('id', ''),
                 'stype': request.form.get('type', ''),
                 'chpwd': request.form.get('chpwd', '')}
@@ -333,22 +340,31 @@ def init_views(app):
                     SET u.role_id=:role_id
                     WHERE u.id=:id
             '''
+        elif para['stype'] == 'new':
+            check = User.query.filter_by(username=para['username']).all()
+            if len(check):
+                return 'exist'
+            sql = '''
+                    INSERT INTO stdb.users (username,password_hash,role_id)
+                    VALUE(:username,'123456',:role_id)
+                '''
         else:
             sql = '''
-                UPDATE stdb.users u
-                    SET u.password_hash= CASE :stype WHEN 'reset' THEN '123456'
-                                                     ELSE :chpwd END
-                    WHERE u.id=:id
-            '''
+            UPDATE stdb.users u
+                SET u.password_hash= CASE :stype WHEN 'reset' THEN '123456'
+                                                 ELSE :chpwd END
+                WHERE u.id=:id
+        '''
         db.session.execute(sql, para)
         db.session.commit()
-        return 'ok' if para['stype'] == 'update' else u'重置密码成功！'
+        return 'ok' if para['stype'] in ['update', 'new'] else u'重置密码成功！'
 
     # 分类维护
     @app.route('/catalog', methods=['GET', 'POST'])
     @login_required
     def catalog():
-        para = {'query': request.args.get('query', '')}
+        para = {'query': request.args.get('query', ''),
+                'ifedit': 'N' if g.user.password_hash == '123456' else 'Y'}
         if g.user.role_id == 3:
             return 'Powerless'
         catalogs = Catalog.query
@@ -357,7 +373,7 @@ def init_views(app):
                                login_form=LoginForm(),
                                para=g.para,
                                catalogs=catalogs if para['query'] else [],
-                               page={})
+                               page=eip_format(para))
 
     # 分类详情
     @app.route('/catalog.detail', methods=['POST'])

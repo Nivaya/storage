@@ -109,6 +109,13 @@
     <nav class="navbar navbar-inverse navbar-fixed-top">
         <div class="container-fluid">
             <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                        aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
                 <span class="navbar-brand"><span class="glyphicon glyphicon-th-large"></span>&nbsp;库存管理系统 v1.0</span>
             </div>
             <div id="navbar" class="collapse navbar-collapse">
@@ -144,7 +151,7 @@
         $(function () {
             page = {{page|safe}};
 
-            $('#loginModal .checkbox').append('<label><a href="{{ url_for("register") }}">还有没有账号？点击注册</a></label>');
+            {#            $('#loginModal .checkbox').append('<label><a href="{{ url_for("register") }}">还有没有账号？点击注册</a></label>');#}
             $('#loginModal form').append('<button type="button" class="btn btn-danger" data-dismiss="modal">取消</button>');
 
             var para = {};
@@ -172,7 +179,10 @@
                     });
                 });
             })
-            if (page.user == '123456') $('#change_pwd').trigger('click');
+            if (page.ifedit == 'N') {
+                $('button').attr('disabled', 'disadbled');
+                $('#change_pwd').trigger('click');
+            }
 
             {% block scripts_extend %}
             {% endblock %}

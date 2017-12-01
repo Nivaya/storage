@@ -241,7 +241,7 @@
                 <input name="sn" type="text" disabled class="form-control input-sm" value="{sn}">
             </div>
             <div class="col-md-4">
-                <label>领用时间:</label>
+                <label>出库/入库时间:</label>
                 <input name="register_date" type="date" class="form-control input-sm" data-date-format="yyyy-mm-dd">
             </div>
         </div>
@@ -267,10 +267,7 @@
         var today = new Date();
         today = today.format('yyyy-MM-dd');
         var model_tp = $('#modal_tp').html(), ht_tp = $('#history_tp').html();
-        var addline = {
-            id: '', part: '', sn: '', description: '', purchase_date: today, username: '仓库', price: '',
-            location: '仓库', remark: '', state: '', catalog_id: '',
-        };
+        var addline = {purchase_date: today, username: '仓库', location: '仓库'};
 
         //查询
         $('#search').click(function () {
@@ -340,7 +337,7 @@
                     var eles = $(e.target).closest('tr').find('[name=id]');
                     var para = [{name: 'id', value: eles.text()}];
                     $.post('/storage.detail', para, function (data) {
-                        $('#setting_title').text('领用：' + data[0].id);
+                        $('#setting_title').text('设备：' + data[0].id);
                         var html = data.map(function (row) {
                             for (var i in row) row[i] = row[i] == null ? '' : row[i]
                             return ht_tp.format(row)
